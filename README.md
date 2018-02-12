@@ -7,7 +7,7 @@ The downloadTorBrowser.sh script securely and privately downloads and verifies t
 ## Usage
 Basically:
 ```
-[ENV_VARIABLE] [ENV_VARIBLE] ./downloadTorBrowser.sh 
+[ENV_VARIABLE] [ENV_VARIABLE] ./downloadTorBrowser.sh 
 ```
 where ENV_VARIABLES are any of the internal variables listed below. You can run it without any environment variables, but it won't be as secure if you don't configure the proxy and routing settings.
 
