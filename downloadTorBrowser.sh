@@ -14,6 +14,7 @@ query_response () {
 }
 
 ## If DEBUG != 0, dump all vars
+## You can also append "set -x" to the beginning of this file for tracing
 dump () {
     echo "PROG_NAME: $PROG_NAME"
     echo "USER: $USER"
@@ -79,11 +80,11 @@ DESCRIPTION
      the ISP/Google default. If proxies are specified, the first hop is 
      started from "pre-proxy" and then to "proxy" and then to the TorProject
      site. The useragent is also spoofed to the most common one. All together
-     curl then downloads the hash sums file, it's corresponding PGP key, and
-     the latest amd64 en-US Tor-Browser, and it's corresponding PGP key.
+     curl then downloads the hash sums file, its corresponding PGP key, and
+     the latest amd64 en-US Tor-Browser, and its corresponding PGP key.
 
-     After, GPG downloads the Tor-Browser Team's GPG key from the SKS-Servers
-     pool, over the equivalent of HTTPS. If Tor is running on the local
+     After, GPG downloads the Tor-Browser Team's PGP key from the SKS-Servers
+     pool, over the equivalent of HTTPS. If Tor is already running on local,
      an onion-routed keyserver can be specified to be used instead. However,
      DNS requests are not routed through Tor for key downloads. Then, GPG
      verifies the signature of the hash sums and the browser. sha256sum also
@@ -108,25 +109,24 @@ ENVIRONMENT
 			Chrome/63.0.3239.132 Safari/537.36
 
      PRE_PROXY		The proxy to use before connecting to the main 
-     			proxy. Follows standard Curl usage.
+     			proxy. Follows standard curl usage
 
      PROXY		The main proxy to connect to the download site.
-     			Follows standard Curl usage.
+     			Follows standard curl usage
 
      CIPHER		The cipher curl should use to communicate with the
      			Tor Project directory over TLS. Default is
 			ECDHE-RSA-AES256-GCM-SHA384 for OpenSSL
 
      DNS		The DNS server curl should use to lookup the Tor
-     			Download links.
+     			Download links
 
      KEY_SERVER		Keyserver GPG should use to retrieve the dev key.
      			Default is hkp://pool.sks-keyservers.net
 			Onion alternative: hkps://jirk5u4osbsr34t5.onion 
-			Via Kristian Fiskerstrand
-			The default is not over SSL. If you're using an
-			SSL server with a custom certificate, you can
-			append the option here too.
+			Via Kristian Fiskerstrand. The default is not over
+			SSL. If you're using an SSL server with a custom 
+			certificate, you can append the option here too
 
      TOR_BROWSER_LINK	Link to the exact Tor-Browser file. Default is
      			https://dist.torproject.org/torbrowser/7.5/tor-
@@ -179,7 +179,8 @@ main () {
     local readonly USER="$(whoami)";
     
     ## Make a tempdir to work in, in /tmp/ and bind it to script
-    ## If the script exits for any reason, the temp directory and all of its contents are deleted
+    ## If the script exits for any reason, the temp directory
+    ## and all of its contents are deleted
     local readonly TEMPDIR=$(mktemp -d "/tmp/$PROG_NAME.XXXXXXX");
     trap 'rm -dRf "$TEMPDIR"' EXIT;
     
@@ -190,9 +191,11 @@ main () {
     local readonly BROWSER_ASC=$(mktemp "$TEMPDIR/BROWSER_ASC.XXXXXXX");
     local readonly SHA_SUM=$(mktemp "$TEMPDIR/SHA_SUM.XXXXXXX");
     local readonly FILE_NAME=$(mktemp "$TEMPDIR/FILE_NAME.XXXXXXX");
+
+    ## String to grep against, when determining what GPG and sha256sum output
     local readonly SIG='"Tor Browser Developers (signing key) <torbrowser@torproject.org>"'
 
-    ### All user-defineable vars, defaults are in quotes
+    ### All user-defineable vars, defaults are on the left-hand side
     local readonly DEBUG=${DEBUG:=0};
     local readonly DEV_TEAM_KEY=${DEV_TEAM_KEY:='0xD1483FA6C3C07136'};
     local readonly TOR_DIRECTORY=${TOR_DIRECTORY:="/home/$USER/bin/"};
@@ -201,7 +204,7 @@ main () {
     local readonly PROXY=${PROXY:-};
     local readonly CIPHER=${CIPHER:-};
     
-    ## OpenNIC in Brazil
+    ## OpenNIC in Brazil -- Only works with libcurl compiled with c-ares
     local readonly DNS=${DNS:='200.252.98.162'};
     
     ## Tor Alternative: hkp://jirk5u4osbsr34t5.onion via Kristian Fiskerstrand
@@ -214,7 +217,7 @@ main () {
     mkdir -p "$TOR_DIRECTORY"
 
     ## Check for c-ares lib, not definitive because it can exist and libcurl still not
-    ## be compiled with it. Most aren't.
+    ## be compiled with it. Most aren't, but this can bring that to light
     if [[ "$(ldconfig -p | grep libcares)" != "" ]]; then
 	local ARES_FLAG=1;
     else
@@ -232,6 +235,7 @@ main () {
         local CIPHER=${CIPHER:="ecdhe_rsa_aes_256_gcm_sha_384"};
     else
 	## You can still use a custom cipher here even if the two checks fail
+	## But there is a possibility it won't be honored by curl or the tor website
 	read -p "No OpenSSL or NSS detected. Your cipher will be unknown. Continue? [Y/n]: " ANSWER
 	query_response "$ANSWER"
 
@@ -312,9 +316,9 @@ main () {
     eval "$CURL_SHA" > "$HASH_ALL"
     eval "$CURL_SHA_ASC" > "$HASH_ALL_ASC"
 
-    ## Puts all of the outputs to GPG and sha256sum commands into a variable so we can
+    ## Puts all of the outputs of GPG and sha256sum commands into a variable so we can
     ## shorten it to only the meaningful bits, but still have the full output if the user
-    ## wants to see them. MATCH is just replacing the original filename in the sums file
+    ## wants to see them. MATCH is just replacing the original filename, in the sums file,
     ## with the name of the temp file tor-browser was downloaded to, because sha256sum
     ## checks against that. FILE_NAME is the end of the Tor-Browser link, so we know
     ## which line to modify. 2>&1 because GPG doesn't output everything to stdout.
