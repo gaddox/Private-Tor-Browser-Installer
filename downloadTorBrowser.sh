@@ -177,10 +177,12 @@ main () {
     ### Shouldn't be touched unless errors occur
     local readonly PROG_NAME="$(basename $0)";
     local readonly USER="$(whoami)";
+    
     ## Make a tempdir to work in, in /tmp/ and bind it to script
     ## If the script exits for any reason, the temp directory and all of its contents are deleted
     local readonly TEMPDIR=$(mktemp -d "/tmp/$PROG_NAME.XXXXXXX");
     trap 'rm -dRf "$TEMPDIR"' EXIT;
+    
     ## Temp Files to hold multiline variables, it's easier this way
     local readonly HASH_ALL=$(mktemp "$TEMPDIR/HASH_ALL.XXXXXXX");
     local readonly HASH_ALL_ASC=$(mktemp "$TEMPDIR/HASH_ASC.XXXXXXX");
@@ -198,8 +200,10 @@ main () {
     local readonly PRE_PROXY=${PRE_PROXY:-}; 
     local readonly PROXY=${PROXY:-};
     local readonly CIPHER=${CIPHER:-};
+    
     ## OpenNIC in Brazil
-    local readonly DNS=${DNS:='200.252.98.162'}; 
+    local readonly DNS=${DNS:='200.252.98.162'};
+    
     ## Tor Alternative: hkp://jirk5u4osbsr34t5.onion via Kristian Fiskerstrand
     local readonly KEY_SERVER=${KEY_SERVER:='hkp://pool.sks-keyservers.net'};
     local readonly TOR_BROWSER_LINK=${TOR_BROWSER_LINK:='https://dist.torproject.org/torbrowser/7.5/tor-browser-linux64-7.5_en-US.tar.xz'};
@@ -253,14 +257,13 @@ main () {
 
     fi
 
-    ## Check if keyserver is an .onion address. Not definitive, can have ".onion" string, but not
-    ## be real onion link. 
-    if [[ ! "$KEY_SERVER" =~ ".onion" ]]; then
+    ## Check if keyserver is an .onion address
+    if [[ ! "$KEY_SERVER" =~ ".onion"$ ]]; then
 	read -p "Not using an onion hidden key server. Continue? [Y/n]: " ANSWER
 	query_response "$ANSWER"
     fi
     
-    ## Base curl command that builds using flgs defined above
+    ## Base curl command that builds using flags defined above
     ## Cert-status verifies certificate
     ## No-keepalive sends all requests on separate connections
     ## Max-redirs denies redirects
@@ -284,13 +287,30 @@ main () {
 	CURL_COMMAND_BASE+=" --proxy ""$PROXY"
     fi
 
-    ## Set command read only, otherwise if tampered exit script. Only a fail-safe because we're using
-    ## eval and that could cause security problems
-    local readonly CURL_COMMAND_BASE=${CURL_COMMAND_BASE:="exit;"};
-    eval "$CURL_COMMAND_BASE ""$TOR_BROWSER_LINK" > "$BROWSER"
-    eval "$CURL_COMMAND_BASE ""$TOR_BROWSER_LINK"".asc" > "$BROWSER_ASC"
-    eval "$CURL_COMMAND_BASE ""$SHA256SUM_LINK" > "$HASH_ALL"
-    eval "$CURL_COMMAND_BASE ""$SHA256SUM_LINK"".asc" > "$HASH_ALL_ASC"
+    ### Sanitize inputs, create, and lock commands
+    ## Curl base command 
+    local readonly CURL_COMMAND_BASE=${CURL_COMMAND_BASE//[^a-zA-Z0-9_-:/. ]/};
+    
+    ## Curl command for Tor-Browser
+    local CURL_TOR_BROWSER="$CURL_COMMAND_BASE"" $TOR_BROWSER_LINK"
+    local readonly CURL_TOR_BROWSER=${CURL_TOR_BROWSER//[^a-zA-Z0-9_-:/. ]/};
+    
+    ## Curl command for Tor-Browser PGP key    
+    local CURL_TOR_BROWSER_ASC="$CURL_COMMAND_BASE"" $TOR_BROWSER_LINK"".asc"
+    local readonly CURL_TOR_BROWSER_ASC=${CURL_TOR_BROWSER_ASC//[^a-zA-Z0-9_-:/. ]/};
+    
+    ## Curl command for sha256sums
+    local CURL_SHA="$CURL_COMMAND_BASE"" $SHA256SUM_LINK"
+    local readonly CURL_SHA=${CURL_SHA//[^a-zA-Z0-9_-:/. ]/};
+    
+    ## Curl command for sha256sums PGP key
+    local CURL_SHA_ASC="$CURL_COMMAND_BASE"" $SHA256SUM_LINK"".asc"
+    local readonly CURL_SHA_ASC=${CURL_SHA_ASC//[^a-zA-Z0-9_-:/. ]/};
+    
+    eval "$CURL_TOR_BROWSER" > "$BROWSER"
+    eval "$CURL_TOR_BROWSER_ASC" > "$BROWSER_ASC"
+    eval "$CURL_SHA" > "$HASH_ALL"
+    eval "$CURL_SHA_ASC" > "$HASH_ALL_ASC"
 
     ## Puts all of the outputs to GPG and sha256sum commands into a variable so we can
     ## shorten it to only the meaningful bits, but still have the full output if the user
