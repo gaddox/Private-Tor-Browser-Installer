@@ -13,9 +13,16 @@ query_response () {
     fi
 }
 
-## If DEBUG != 0, dump all vars
-## You can also append "set -x" to the beginning of this file for tracing
+## If DEBUG == 2, enable tracing
+trace () {
+    set -x
+}
+
+## If DEBUG != 0, ask to dump all vars
 dump () {
+    set +x
+    read -p "Dump vars? [Y/n]: " ANSWER
+    query_response "$ANSWER"
     echo "PROG_NAME: $PROG_NAME"
     echo "USER: $USER"
     echo "TEMPDIR: $TEMPDIR"
@@ -140,8 +147,10 @@ ENVIRONMENT
      			/home/$USER/.bashrc
 
      DEBUG		If anything but 0, will run the entire process, 
-     			right up to extraction and installation. Then 
-			dump all of the variables and exit.
+     		        right up to extraction and installation, then ask 
+			if vars should be dumped to stdout. If 2, will
+			do the aforementioned, but with set -x enabled
+			tracing.
 
 EXAMPLES
      To download and install the Tor-Browser with no proxies or custom DNS:
@@ -374,6 +383,11 @@ main () {
 if [[ ! -z "$1" ]]; then
 	help_dialog;
 	exit 0;
+fi
+
+## If debugging is on 2, run tracer
+if [[ "$DEBUG" -eq 2 ]]; then
+    trace
 fi
 
 ## Main

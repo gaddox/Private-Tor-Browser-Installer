@@ -33,7 +33,8 @@ PROXY="socks5://255.255.255.255.255:25555" ./downloadTorBrowser.sh
 | TOR_BROWSER_LINK  | Link to the exact Tor-Browser file.     | https://dist.torproject.org/torbrowser/7.5/tor-browser-linux64-7.5_en-US.tar.xz |
 | SHA256SUM_LINK    | Link to the hash sums file.	      | https://dist.torproject.org/torbrowser/7.5/sha256sums-signed-build.txt |
 | EXPORT_ENV	    | File containing the PATH variable.      | /home/$USER/.bashrc         |
-| DEBUG		    | If anything but 0, will run the entire process, right up to extraction and installation. Then dump all of the variables and exit. | 0 |
+| DEBUG		    | If anything but 0, will run the entire process, right up to extraction and installation, then ask if vars should be dumped to stdout. If 2, will do the aforementioned, but with set -x enabled tracing.
+ | 0 |
 
 ## CAVEATS
 Security is only as strong as you make it. If you run this with no proxies, using Google's DNS, over the clearnet, with a terrible cipher, a unique useragent, and decide to install even when you're shown that all the PGP signatures and checksum are bad, that's on you. You probably shouldn't be relying on someone else's script to do this for you either, but it's open source, small, and documented, so you can verify the integrity of it yourself. 
