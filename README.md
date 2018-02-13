@@ -37,3 +37,6 @@ PROXY="socks5://255.255.255.255.255:25555" ./downloadTorBrowser.sh
 
 ## CAVEATS
 Security is only as strong as you make it. If you run this with no proxies, using Google's DNS, over the clearnet, with a terrible cipher, a unique useragent, and decide to install even when you're shown that all the PGP signatures and checksum are bad, that's on you. You probably shouldn't be relying on someone else's script to do this for you either, but it's open source, small, and documented, so you can verify the integrity of it yourself. 
+
+## Credit
+Credit goes to Endwall ([Github](https://github.com/endwall2)/[GitGud](https://gitgud.io/Endwall)) for outlining and sharing the original process of downloading, checking signatures, and installing.
