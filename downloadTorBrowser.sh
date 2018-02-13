@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Gaddox | February 12th, 2018
+# Gaddox | February 13th, 2018
 
 ## Error handling, so we don't fail silently
 set -e -o pipefail
@@ -173,8 +173,13 @@ CAVEATS
 
 AUTHOR
      Gaddox
+
+CREDIT
+     Endwall of the Endware Development Team, and Endchan, for outlining
+     the original process of downloading, checking signatures, and 
+     installing.	
            
-                               February 12, 2018                               
+                               February 13, 2018                               
 EOF
 
 exit 0
