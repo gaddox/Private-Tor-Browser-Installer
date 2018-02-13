@@ -42,7 +42,7 @@ dump () {
     echo "DNS: $DNS"
     echo "KEY_SERVER: $KEY_SERVER"
     echo "TOR_BROWSER_LINK $TOR_BROWSER_LINK"
-    echo "SHA256SUM_LINL: $SHA256SUM_LINK"
+    echo "SHA256SUM_LINK: $SHA256SUM_LINK"
     echo "EXPORT_ENV: $EXPORT_ENV"
     echo "ARES_FLAG: $ARES_FLAG"
     echo "PRE_PROXY_FLAG: $PRE_PROXY_FLAG"
@@ -51,10 +51,10 @@ dump () {
     echo "CURL_COMMAND_BASE: $CURL_COMMAND_BASE"
     echo "REPORT_FLAG: $REPORT_FLAG"
     echo "GPG_KEY: $GPG_KEY"
-    echo "GPG_HASH: $GPG_HASH"
+    echo "GPG_HASH_STATUS: $GPG_HASH_STATUS"
     echo "MATCH: $MATCH"
-    echo "SHA_HASH: $SHA_HASH"
-    echo "GPG_BROWSER: $GPG_BROWSER"
+    echo "SHA_HASH_STATUS: $SHA_HASH_STATUS"
+    echo "GPG_BROWSER_STATUS: $GPG_BROWSER_STATUS"
     echo "DEBUG: $DEBUG"
     exit 2
 }
@@ -166,7 +166,7 @@ CAVEATS
      Security is only as strong as you make it. If you run this with no
      proxies, using Google's DNS, over the clearnet, with a terrible 
      cipher, a unique useragent, and decide to install even when you're
-     shown that all the PGP signatures and checksum are bad, that's on you.
+     shown that all the PGP signatures and checksum is bad, that's on you.
      You probably shouldn't be relying on someone else's script to do this
      for you either, but it's open source, small, and documented, so you
      can verify the integrity of it yourself.  
@@ -209,7 +209,7 @@ main () {
     ## String to grep against, when determining what GPG and sha256sum output
     local readonly SIG='"Tor Browser Developers (signing key) <torbrowser@torproject.org>"'
 
-    ### All user-defineable vars, defaults are on the left-hand side
+    ### All user-defineable vars, defaults are on the right-hand side
     local readonly DEBUG=${DEBUG:=0};
     local readonly DEV_TEAM_KEY=${DEV_TEAM_KEY:='0xD1483FA6C3C07136'};
     local readonly TOR_DIRECTORY=${TOR_DIRECTORY:="/home/$USER/bin/"};
@@ -338,20 +338,20 @@ main () {
     ## which line to modify. 2>&1 because GPG doesn't output everything to stdout.
     ## Most of GPG's output goes to stderr which can be decieving.
     local GPG_KEY="$(gpg --keyserver $KEY_SERVER --recv-key $DEV_TEAM_KEY 2>&1)"
-    local GPG_HASH="$(gpg --verify $HASH_ALL_ASC $HASH_ALL  2>&1)"
+    local GPG_HASH_STATUS="$(gpg --verify $HASH_ALL_ASC $HASH_ALL  2>&1)"
     local FILE_NAME=$( sed 's/.*\///g' <( echo "$TOR_BROWSER_LINK" ) )
     local MATCH=$(grep "$FILE_NAME" "$HASH_ALL" | sed "s~ $FILE_NAME~$BROWSER~")
-    local SHA_HASH=$(sed "s~$BROWSER~sha: Tor-Browser~" <( sha256sum -c <( echo "$MATCH" )))
-    local GPG_BROWSER="$(gpg --verify $BROWSER_ASC $BROWSER 2>&1)"
+    local SHA_HASH_STATUS=$(sed "s~$BROWSER~sha: Tor-Browser~" <( sha256sum -c <( echo "$MATCH" )))
+    local GPG_BROWSER_STATUS="$(gpg --verify $BROWSER_ASC $BROWSER 2>&1)"
 
     ## Sed is a hack to imitate read line, because this is simpler
     ## Reads each line, of each output from above, then checks if it contains "$SIG"
     ## Which is just a standrad string all of the outputs have, that also contains
     ## the meaningful pass/fail message.
     sed "s/gpg:/gpg:/g" <( echo "$GPG_KEY" ) | grep "$SIG"
-    sed "s/gpg:/gpg:/g" <( echo "$GPG_HASH" ) | grep "$SIG"
-    sed "s/gpg:/gpg:/g" <( echo "$GPG_BROWSER" ) | grep "$SIG"
-    echo "$SHA_HASH"
+    sed "s/gpg:/gpg:/g" <( echo "$GPG_HASH_STATUS" ) | grep "$SIG"
+    sed "s/gpg:/gpg:/g" <( echo "$GPG_BROWSER_STATUS" ) | grep "$SIG"
+    echo "$SHA_HASH_STATUS"
     
     ## If you want the full report, you specify R in the prompt and we print the full messages
     ## back at you and re-run the prompt agian.
@@ -360,8 +360,9 @@ main () {
 	read -p "Print full report (R) Continue with install (C) Exit (E): " ANSWER
 	if [[ "$ANSWER" == [Rr] ]]; then
 	    sed "s/gpg:/gpg:/g" <( echo "$GPG_KEY" )
-	    sed "s/gpg:/gpg:/g" <( echo "$GPG_HASH" )
-	    sed "s/gpg:/gpg:/g" <( echo "$GPG_BROWSER" )
+	    sed "s/gpg:/gpg:/g" <( echo "$GPG_HASH_STATUS" )
+	    sed "s/gpg:/gpg:/g" <( echo "$GPG_BROWSER_STATUS" )
+	    echo "$SHA_HASH_STATUS"
 	elif [[ "$ANSWER" == [Cc] ]]; then
 	    REPORT_FLAG=0;
 	    :;
