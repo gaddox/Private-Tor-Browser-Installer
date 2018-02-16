@@ -55,6 +55,8 @@ dump () {
     echo "MATCH: $MATCH"
     echo "SHA_HASH_STATUS: $SHA_HASH_STATUS"
     echo "GPG_BROWSER_STATUS: $GPG_BROWSER_STATUS"
+    echo "CURL_CA_BUNDLE: $CURL_CA_BUNDLE"
+    echo "BUNDLE_FLAG: $BUNDLE_FLAG"
     echo "DEBUG: $DEBUG"
     exit 2
 }
@@ -152,6 +154,12 @@ ENVIRONMENT
 			do the aforementioned, but with set -x enabled
 			tracing.
 
+     CURL_CA_BUNDLE	Certificate chain to use when interacting with
+     		        the download server, by curl. Same name as the
+			curl environment variable, so pre-assigned
+			variables can be used from .bashrc and the like.
+			Automatically included in full git repo
+
 EXAMPLES
      To download and install the Tor-Browser with no proxies or custom DNS:
      
@@ -225,6 +233,9 @@ main () {
     local readonly KEY_SERVER=${KEY_SERVER:='hkp://pool.sks-keyservers.net'};
     local readonly TOR_BROWSER_LINK=${TOR_BROWSER_LINK:='https://dist.torproject.org/torbrowser/7.5/tor-browser-linux64-7.5_en-US.tar.xz'};
     local readonly SHA256SUM_LINK=${SHA256SUM_LINK:='https://dist.torproject.org/torbrowser/7.5/sha256sums-signed-build.txt'};
+
+    ## Cert chain for dist.torproject.org. Env variable is the same as Curl's variable, so it can  be automatically configured in .bashrc, etc.
+    local readonly CURL_CA_BUNDLE=${CURL_CA_BUNDLE:='TorProjectChain.pem'};
     local readonly EXPORT_ENV=${EXPORT_ENV:="/home/$USER/.bashrc"};
     
     ## If it already exists, continue, else make it
@@ -280,13 +291,30 @@ main () {
 	read -p "Not using an onion hidden key server. Continue? [Y/n]: " ANSWER
 	query_response "$ANSWER"
     fi
+
+    ## Check for cert bundle and if it's not empty
+    if [[ -z "$CURL_CA_BUNDLE"  ]]; then
+	local BUNDLE_FLAG=0;
+	read -p "Not using a local cert bundle. Continue? [Y/n]: " ANSWER
+	query_response "$ANSWER"
+    elif [[ ! -s "$CURL_CA_BUNDLE" ]]; then
+	local BUNDLE_FLAG=0;
+	read -p "Local cert bundle is empty. Continue? [Y/n]: " ANSWER
+	query_response "$ANSWER"
+    else
+	local BUNDLE_FLAG=1;
+    fi
     
     ## Base curl command that builds using flags defined above
     ## Cert-status verifies certificate
     ## No-keepalive sends all requests on separate connections
     ## Max-redirs denies redirects
-    ## Proto only allows connections through https 
-    local CURL_COMMAND_BASE='curl --cert-status --no-keepalive --user-agent '"\"$USER_AGENT\""' --max-redirs 0 --no-sessionid --proto =https'
+    ## Proto only allows connections through https
+    ## No-sessionid is an extra security measure
+    ## # changes curl output to simple progress bar
+    ## Fail-early drops everything if one request fails
+    ## SSl-reqd is a fallback safety for proto
+    local CURL_COMMAND_BASE='curl -# --fail-early --cert-status --no-keepalive --ssl-reqd --user-agent '"\"$USER_AGENT\""' --max-redirs 0 --no-sessionid --proto =https'
 
     ## Build the command
     if [[ $ARES_FLAG -eq 1 ]]; then
@@ -303,6 +331,11 @@ main () {
     
     if [[ $PROXY_FLAG -eq 1 ]]; then
 	CURL_COMMAND_BASE+=" --proxy ""$PROXY"
+    fi
+    
+    ## Cacert is the cert bundle for the website. Not needed, but may be used as an extra precaution
+    if [[ $BUNDLE_FLAG -eq 1 ]]; then
+	CURL_COMMAND_BASE+="  --cacert $CURL_CA_BUNDLE"
     fi
 
     ### Sanitize inputs, create, and lock commands
