@@ -1,2 +1,0 @@
-63ff360aafde5ff959fb9671ec27002f99cbfae4907b410046b6a1b0f51cba9e  TorProjectChain.pem
-b7569033f39992cbd173cdcf933d5654e5bd68025e707cb69e31c0632d4c3d88  downloadTorBrowser.sh
